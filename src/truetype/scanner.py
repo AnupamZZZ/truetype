@@ -51,8 +51,10 @@ SIGNATURES = [
     ("Windows PE executable (exe/dll/scr)", "executable", lambda h: h.startswith(b"MZ")),
     ("Linux ELF executable", "executable", lambda h: h.startswith(b"\x7fELF")),
     ("macOS Mach-O executable", "executable",
-        lambda h: h[:4] in (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf", b"\xce\xfa\xed\xfe",
-                            b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe") and not h[4:8] == b"\x00\x00\x00\x34"),
+        lambda h: h[:4] in (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf", b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe")
+                  or (h[:4] == b"\xca\xfe\xba\xbe" and int.from_bytes(h[4:8], "big") < 45)),
+    ("Java class file", "executable",
+        lambda h: h[:4] == b"\xca\xfe\xba\xbe" and int.from_bytes(h[4:8], "big") >= 45),
     ("Windows shortcut (.lnk)", "executable", lambda h: h.startswith(b"L\x00\x00\x00\x01\x14\x02\x00")),
     ("Script with shebang", "script",  lambda h: h.startswith(b"#!")),
 ]
@@ -73,6 +75,10 @@ EXT_CATEGORY = {
 TEXT_EXTS = {".txt", ".csv", ".json", ".xml", ".md", ".html", ".htm", ".log", ".ini"}
 EXEC_EXTS = {".exe", ".scr", ".com", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".jse", ".wsf",
              ".msi", ".lnk", ".jar", ".hta", ".pif", ".cpl", ".sh", ".app", ".dll"}
+# real program/library extensions (an executable with these names is normal)
+BINARY_EXTS = EXEC_EXTS | {".class", ".so", ".dylib", ".pyd", ".ocx", ".drv", ".sys", ".efi", ".bin", ".ax"}
+# real script extensions (a #! first line is normal in these)
+SCRIPT_EXTS = EXEC_EXTS | {".py", ".pl", ".rb", ".php", ".lua", ".bash", ".zsh", ".command", ".tcl"}
 BIDI_CHARS = {"\u202e", "\u202d", "\u202b", "\u202a", "\u2066", "\u2067", "\u2068"}
 
 # executables hiding INSIDE another file
@@ -149,11 +155,15 @@ def analyze(path):
 
             # ---- extension vs content
             expected = EXT_CATEGORY.get(ext)
-            if cat == "executable" and (ext not in EXEC_EXTS):
-                findings.append(("danger", f"EXECUTABLE disguised as '{ext or 'no extension'}': "
-                                           f"content is {detected}."))
-            elif cat == "script" and ext not in EXEC_EXTS:
-                findings.append(("danger", f"Script disguised as '{ext or 'no extension'}'."))
+            if cat == "executable" and ext not in BINARY_EXTS:
+                if ext == "":
+                    findings.append(("warn", f"Executable with no file extension ({detected}). "
+                                             f"Normal on Linux/macOS, unusual elsewhere."))
+                else:
+                    findings.append(("danger", f"EXECUTABLE disguised as '{ext}': "
+                                               f"content is {detected}."))
+            elif cat == "script" and ext != "" and ext not in SCRIPT_EXTS:
+                findings.append(("danger", f"Script disguised as '{ext}'."))
             elif expected and cat and cat not in expected:
                 findings.append(("warn", f"Extension '{ext}' expects {'/'.join(sorted(expected))}, "
                                          f"but content is {detected}."))
@@ -191,8 +201,8 @@ def analyze(path):
                         low = mm[:min(size, 8 * 1024 * 1024)].lower()
                         for hint in SCRIPT_HINTS:
                             if hint.lower() in low:
-                                findings.append(("warn", f"Script-like text {hint!r} found inside a "
-                                                         f"{cat} file."))
+                                findings.append(("warn", f"Script-like text {hint!r} found inside "
+                                                         f"{'an' if cat[0] in 'aeiou' else 'a'} {cat} file."))
                                 break
             # ZIP-family: peek inside for executables
             if cat == "archive" and detected.startswith("ZIP"):
