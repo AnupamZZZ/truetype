@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "truetype-scan"
+version = "0.1.0"
+description = "Detect executables and hidden payloads disguised as images, videos and documents."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Anupam Chatterjee" }]
+keywords = ["security", "malware", "file-type", "magic-bytes", "forensics"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Environment :: Console",
+]
+
+[project.urls]
+Homepage = "https://github.com/AnupamZZZ/truetype"
+
+[project.scripts]
+truetype = "truetype.scanner:main"
+
+[project.gui-scripts]
+truetype-gui = "truetype.gui:main"
+
+[project.optional-dependencies]
+dnd = ["tkinterdnd2"]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
