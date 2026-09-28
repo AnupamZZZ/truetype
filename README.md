@@ -1,6 +1,6 @@
 # truetype
 
-![CI](https://github.com/YOUR-USERNAME/truetype/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/AnupamZZZ/truetype/actions/workflows/ci.yml/badge.svg)
 
 Find out what a file **really** is, no matter what its name says.
 Attackers often disguise an executable as `holiday.png` or `movie.mp4`. `truetype` reads the
@@ -17,7 +17,7 @@ file's actual bytes and warns you when the name and content don't match.
 ## Install
 
 ```bash
-pip install git+https://github.com/YOUR-USERNAME/truetype.git
+pip install git+https://github.com/AnupamZZZ/truetype.git
 ```
 
 ## Usage
